@@ -49,6 +49,13 @@ RK3566:
 	DEVICE_ROOT=RK3566 PROJECT=ROCKNIX DEVICE=RK3566 ARCH=arm ./scripts/build_distro
 	DEVICE_ROOT=RK3566 PROJECT=ROCKNIX DEVICE=RK3566 ARCH=aarch64 ./scripts/build_distro
 
+# The device has been in devices/ and in CI all along, but never had a target
+# here, so it could only be built by calling build_distro directly.
+RK356X:
+	unset DEVICE_ROOT
+	PROJECT=ROCKNIX DEVICE=RK356X ARCH=arm ./scripts/build_distro
+	PROJECT=ROCKNIX DEVICE=RK356X ARCH=aarch64 ./scripts/build_distro
+
 RK3326:
 	unset DEVICE_ROOT
 	PROJECT=ROCKNIX DEVICE=RK3326 ARCH=arm ./scripts/build_distro
