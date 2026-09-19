@@ -29,9 +29,12 @@ case ${DEVICE} in
     PKG_PATCH_DIRS="${DEVICE} default"
     ;;
   RK356X)
-    PKG_VERSION="263440eb2a7dade605a22e31be10b3f98d4b10d4"
-    PKG_URL="https://github.com/AveyondFly/kernel_rk356x/archive/${PKG_VERSION}.tar.gz"
-    PKG_GIT_CLONE_BRANCH="rk356x-panfrost"
+    # AveyondFly/kernel_rk356x@rk356x-panfrost plus the RG52 Mini revision B
+    # fixes: the silent RGB bridge, the rk817 ADC rate, the dwc3 babble filter
+    # and Bluetooth over SDIO. See doc/rg52mini/04-журнал.md.
+    PKG_VERSION="837e33b191ba0a3ea4774c020a0ec96100307ca6"
+    PKG_URL="https://github.com/mamaich/kernel_rk3562/archive/${PKG_VERSION}.tar.gz"
+    PKG_GIT_CLONE_BRANCH="aurknix-rg52mini"
     PKG_PATCH_DIRS="${DEVICE} default"
     ;;
   A527)

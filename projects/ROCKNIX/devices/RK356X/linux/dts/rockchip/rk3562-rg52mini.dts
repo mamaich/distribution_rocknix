@@ -212,9 +212,33 @@
 	];
 };
 
-/* RK817 codec — RG52 Mini uses higher headphone volume */
+/* RK817 codec — RG52 Mini uses higher headphone volume.
+ *
+ * spk-ctl-gpios lives here rather than on the sound card: the codec driver
+ * gates the external amplifier from rk817_digital_mute_dac(), so it can drop
+ * the GPIO before the DAC transition instead of after it.
+ *
+ * spk-mute-delay-ms is what makes that gating silent. Without it the amplifier
+ * switches right up against the DAC transition and every start and stop of
+ * playback is audible as a click. hp-mute-delay-ms already existed in the
+ * shared dtsi for the headphone path; the speaker path had been overlooked. */
 &rk817_codec {
 	hp-volume = <54>;
+	spk-ctl-gpios = <&gpio3 RK_PC3 GPIO_ACTIVE_HIGH>;
+	spk-mute-delay-ms = <100>;
+};
+
+/* The amplifier GPIO is claimed by the codec above, so drop it here. */
+&rk817_sound {
+	/delete-property/ spk-con-gpios;
+};
+
+/* Panel vertical front porch: 31 lines, not the 20 the shared dtsi sets. This
+ * is what the shipped image's binary device tree has, and what the bootloader
+ * brings the panel up with, so the handover to the kernel keeps the same
+ * timing. */
+&dsi_timing0 {
+	vfront-porch = <31>;
 };
 
 /* RK817 PMIC — battery and charger parameters */
@@ -306,6 +330,19 @@
 	/delete-property/ extcon;
 	usb-role-switch;
 
+	/* Poor cables and ESD can fake a USB2 babble condition during the idle
+	 * window between high-speed EOF2 and the next microframe SOF. xHCI then
+	 * disables the root hub port outright and the device drops off:
+	 *
+	 *     usb usb1-port1: disabled by hub (EMI?), re-enabling...
+	 *     usb 1-1: USB disconnect, device number 2
+	 *
+	 * GUCTL1.LOA_FILTER_EN makes the controller require three consecutive
+	 * babble detections before killing the port, which filters the transient
+	 * false ones out. Needs the matching driver support in
+	 * drivers/usb/dwc3/core.c, which this kernel branch carries. */
+	snps,loa-filter-en-quirk;
+
 	port {
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -334,4 +371,21 @@
 			rockchip,pins = <0 RK_PB0 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
+};
+
+/* ---- Thermal: second safety net above 95 C ------------------------------ */
+
+/* Without rockchip,high-temp the system monitor leaves the threshold at
+ * INT_MAX, so it never engages and the thermal governor regulating to the
+ * 85 C trip is the only limit. Above 95 C this caps the CPU to the operating
+ * points that need no more than 1.1 V, which matters when the ambient itself
+ * is hot -- the device has no heatsink, so outdoors in summer the die has
+ * nowhere to dump heat.
+ *
+ * Values taken from rk3562.dtsi in the Rockchip develop-6.1 branch, where they
+ * were added after the snapshot this kernel is based on. The system monitor in
+ * 5.10 already parses both properties. */
+&cpu0_opp_table {
+	rockchip,high-temp = <95000>;
+	rockchip,high-temp-max-volt = <1100000>;
 };

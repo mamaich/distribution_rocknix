@@ -143,6 +143,37 @@ def atomic_write_text(path: str, text: str):
     os.replace(tmp, path)
 
 
+# Our U-Boot runs on its own copy of the device tree, read from the root of the
+# boot partition under this exact name, and it is what brings the panel up
+# before the kernel starts. So it has to follow the selection as well:
+# otherwise, after switching to another device, the bootloader would keep
+# driving the panel of the previous one.
+BOOTLOADER_DTB = "rk3562-rg52mini.dtb"
+
+
+def refresh_bootloader_dtb(base: str, dtb_rel: str) -> bool:
+    """Обновить корневую копию дерева, с которой работает загрузчик."""
+    rel = normalize_fdt_path(dtb_rel).lstrip("/")
+    src = os.path.join(base, *rel.split("/"))
+    dst = os.path.join(base, BOOTLOADER_DTB)
+    if not os.path.isfile(src):
+        return False
+    if os.path.abspath(src) == os.path.abspath(dst):
+        return True
+    tmp = dst + ".new"
+    try:
+        with open(src, "rb") as f_in, open(tmp, "wb") as f_out:
+            shutil.copyfileobj(f_in, f_out)
+        os.replace(tmp, dst)
+    except OSError:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        return False
+    return True
+
+
 def normalize_fdt_path(dtb_rel: str) -> str:
     p = dtb_rel.strip()
     if not p.startswith("/"):
@@ -195,6 +226,16 @@ def apply_fdt_to_extlinux(dtb_rel: str, *, no_color=False) -> bool:
             color("已更新 extlinux.conf", bg=True, enable=not no_color),
             f"（FDT={normalize_fdt_path(dtb_rel)}）\n  → {path}",
         )
+        if refresh_bootloader_dtb(base, dtb_rel):
+            print(
+                color("已更新引导器设备树", bg=True, enable=not no_color),
+                f"→ {os.path.join(base, BOOTLOADER_DTB)}",
+            )
+        else:
+            print(
+                color("警告：未能更新引导器设备树", bg=True, enable=not no_color),
+                f"（{BOOTLOADER_DTB}）",
+            )
     finally:
         if remount:
             sbin_sync = "/usr/bin/sync"

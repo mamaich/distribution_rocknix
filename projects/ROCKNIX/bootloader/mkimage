@@ -225,6 +225,38 @@ mkimage_rk3566_dtb_select() {
   fi
 }
 
+# RK3562: our U-Boot draws the splash and the charge animation itself, a good
+# fifteen seconds before the system starts. It reads them - and the device tree
+# it runs on - as plain files from the bootable partition, because the resource
+# partition on this device is empty.
+mkimage_rk3562_bootfiles() {
+  if [ ! "${DEVICE}" = "RK356X" ] || [ ! "${SUBDEVICE}" = "RK3562" ]; then
+    return 0
+  fi
+
+  local bmp_dir="${RELEASE_DIR}/3rdparty/bootloader/${SUBDEVICE}_bmp"
+  if [ -d "${bmp_dir}" ]; then
+    echo "image: copying bootloader splash and charge animation..."
+    mcopy -o "${bmp_dir}/"*.bmp ::
+  fi
+
+  # The bootloader looks for this one name and nothing else. Without the file
+  # it falls back to its own cut-down tree: the device still boots, the LED and
+  # the power button still work, but the screen stays black for the whole of
+  # the bootloader. It is the same tree the kernel boots with, under a fixed
+  # name, so the two always agree about the panel.
+  local fdt dtb
+  fdt="$(get_fdt)"
+  dtb="${RELEASE_DIR}/3rdparty/bootloader/device_trees/${SUBDEVICE}/$(basename "${fdt}")"
+  [ -f "${dtb}" ] || dtb="${RELEASE_DIR}/3rdparty/bootloader/${fdt}"
+  if [ -f "${dtb}" ]; then
+    echo "image: copying $(basename "${dtb}") to the partition root for the bootloader..."
+    mcopy -o "${dtb}" ::/rk3562-rg52mini.dtb
+  else
+    echo "image: WARNING ${fdt} not found, the bootloader will have no display"
+  fi
+}
+
 # RK356X-RK3562: rk356x-dtb-select on boot FAT at partition root (/flash)
 mkimage_rk356x_dtb_select() {
   if [ ! "${DEVICE}" = "RK356X" ] || [ ! "${SUBDEVICE}" = "RK3562" ]; then

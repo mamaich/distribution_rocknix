@@ -35,5 +35,10 @@ makeinstall_target() {
     if [ -f "${PKG_UBOOTDIR}/uboot.bin" ]; then
       cp -av "${PKG_UBOOTDIR}/uboot.bin" $INSTALL/usr/share/bootloader/${PKG_SUBDEVICE}_uboot.bin
     fi
+    # Splash and charge animation, for bootloaders that draw them themselves.
+    if [ -d "${PKG_UBOOTDIR}/bmp" ]; then
+      mkdir -p $INSTALL/usr/share/bootloader/${PKG_SUBDEVICE}_bmp
+      cp -av "${PKG_UBOOTDIR}/bmp/"*.bmp $INSTALL/usr/share/bootloader/${PKG_SUBDEVICE}_bmp/
+    fi
   done
 }

@@ -133,7 +133,7 @@
     </Specific>
   </RK3566>
   <RK356X dtb_prefix="rockchip">
-    <RK3562 mkimage_options="dtb,extlinux,uboot,rk356x_dtb_select" fdt="device_trees/rk3562-rg52mini-v1.dtb" fdt_type="fdt">
+    <RK3562 mkimage_options="dtb,extlinux,uboot,rk3562_bootfiles,rk356x_dtb_select" fdt="device_trees/rk3562-rg52mini.dtb" fdt_type="fdt">
       <file>rk3562-rg52mini</file>
       <file>rk3562-rg52mini-v1</file>
       <file>rk3562-rg43h</file>
