@@ -1,0 +1,21 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0
+
+# SDL2 tries its render drivers in build order and picks "opengl" - desktop GL -
+# before it ever considers GLES. There is no desktop GL on this hardware: the
+# Mali blob implements GLES only, and /usr/lib/libGL.so.1.7.0 is not even a
+# library, it is a character device. SDL still creates the renderer, reports
+# "OpenGL shaders: DISABLED", and its fixed-function drawing calls land in the
+# GLES blob, which faults inside glDrawArrays.
+#
+# The symptom is a black screen for a second and a return to the menu: the
+# ebook reader, the music player and the file manager all died this way, while
+# EmulationStation was fine because it links libGLESv2 directly and never goes
+# through SDL_Renderer.
+#
+# Naming GLES 2 explicitly is what SDL's own documentation recommends for
+# GLES-only systems, and it is what the Wayland session already does for
+# SDL_VIDEODRIVER.
+cat <<EOF >/storage/.config/profile.d/015-sdl_render
+export SDL_RENDER_DRIVER=opengles2
+EOF
